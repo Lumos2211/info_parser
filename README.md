@@ -27,6 +27,7 @@
 
 ## 📂 Структура проекта
 
+```text
 info_parser/
 ├── main.py              # Точка входа
 ├── src/
@@ -35,8 +36,7 @@ info_parser/
 ├── .gitignore
 ├── requirements.txt
 └── README.md
-
-
+```
 
 ---
 
