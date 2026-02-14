@@ -41,14 +41,12 @@ class Parser:
             price = title.find("span", class_="psw-m-r-3")
             game_data['price'] = price.text.strip() if price else None
             
-            if not game_data['name']:
+            if not game_data['name'] and not game_data['price']:
                 continue
-            
-            # Проверка на дубликаты (по названию)
+
             if game_data['name'] in [game['name'] for game in games]:
                 continue
             
-            # Добавляем игру
             games.append(game_data)
             
         return games
