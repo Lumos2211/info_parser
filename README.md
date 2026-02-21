@@ -50,3 +50,5 @@ venv\Scripts\Activate.ps1
 
 # Устанавливаем зависимости
 pip install -r requirements.txt
+
+---
