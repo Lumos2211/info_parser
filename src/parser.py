@@ -7,6 +7,8 @@ from loguru import logger
 from config import HEADERS, DELAY, OUTPUT_DIR
 from utils import service_config
 import csv
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 
 from utils import load, all_data
 
@@ -63,17 +65,35 @@ def save_json(collections):
 def selenium_parse_page(url):
     driver = service_config()
     driver.get(url)
-    time.sleep(2)
-    counter = 0
+    processed_count = 0
+    all_data = []
     while True:
+        items = driver.find_elements(By.CSS_SELECTOR, ".js-product.t-store__card.t-store__stretch-col.t-store__stretch-col_25.t-align_left.t-item")
+        new_items = items[processed_count:]
+        if not new_items:
+            break
+        for item in new_items:
+            item_dict = {
+            "title": item.find_item(By.CSS_SELECTOR,
+                ".js-store-prod-name.js-product-name.t-store__card__title.t-typography__title.t-name.t-name_xs",
+                ).text.strip(),
+            "url": item.find_item(By.TAG_NAME,
+                "a").get_attribute("href"),
+            "price": item.find_item(By.CSS_SELECTOR,
+                ".js-product-price.js-store-prod-price-val.t-store__card__price-value",
+                ).text.strip(),
+        }
+            all_data.append(item_dict)
+        processed_count = len(items)
+
         try:
-            load(driver=driver)
-            counter += 1
-            logger.info(f"Нажатие кнопки: {counter}")
+            button = driver.find_element(By.CSS_SELECTOR, ".t-btnflex__text.js-store-load-more-btn-text")
+            button.click()
+            WebDriverWait(driver, 10).until(lambda d: len(d.find_elements(By.CSS_SELECTOR, ".js-product.t-store__card.t-store__stretch-col.t-store__stretch-col_25.t-align_left.t-item")) > processed_count)
         except:
             break
+    driver.quit()
     return all_data
-
 
 
 def main():
@@ -81,10 +101,20 @@ def main():
     # collections = parse_page(soup)
     # data = selenium_parse_page("https://zara-russia.ru/zhenshchiny_novinki_zara")
     # save_csv(data, "novinki_zara.csv")
-    data_2 = selenium_parse_page("https://zara-russia.ru/zhenshchiny_belie_zara")
-    save_csv(data_2, "belie_zara.csv")
+    start = time.time()
+    data_2 = selenium_parse_page("https://zara-russia.ru/zhenshchiny_yubki_zara")
+    end = time.time()
+    logger.info(f"Время выполнения: {end - start} секунд")
+    save_csv(data_2, "yubki_zara.csv")
     # save_json(collections)
 
 
 if __name__ == "__main__":
     main()
+
+
+
+qwe
+qwe
+qwe
+qwe
