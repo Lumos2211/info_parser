@@ -1,16 +1,11 @@
-import requests
+import time, json, csv, requests
 from bs4 import BeautifulSoup
 from pathlib import Path
-import time
-import json
 from loguru import logger
-from config import HEADERS, DELAY, OUTPUT_DIR
-from utils import service_config
-import csv
+from config import DELAY, OUTPUT_DIR, service_config
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
-from utils import load, all_data
 
 url_main = "https://zara-russia.ru"
 
@@ -43,15 +38,35 @@ def parse_page(soup):
 
 
 def save_csv(data, filename):
-    keys = data[0].keys()
-
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
     filepath = Path(OUTPUT_DIR)
-
-    with open(filepath / filename, "w") as file:
-        dict_writer = csv.DictWriter(file, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(data)
+    try:
+        # Проверяем, есть ли данные
+        if not data:
+            logger.warning(f"Нет данных для сохранения в {filename}")
+            # Создаем файл только с заголовками
+            with open(filepath / filename, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(["title", "price", "url"])
+            logger.info(f"✅ Создан пустой файл {filename} с заголовками")
+            return
+        
+        # Проверяем, что первый элемент - словарь с нужными ключами
+        if not isinstance(data[0], dict):
+            logger.error(f"Неверный формат данных в {filename}")
+            return
+        
+        # Сохраняем данные
+        keys = data[0].keys()
+        with open(filepath / filename, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=keys)
+            writer.writeheader()
+            writer.writerows(data)
+        
+        logger.info(f"✅ Сохранено {len(data)} записей в {filename}")
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка при сохранении {filename}: {e}")
 
 
 def save_json(collections):
@@ -69,17 +84,18 @@ def selenium_parse_page(url):
     all_data = []
     while True:
         items = driver.find_elements(By.CSS_SELECTOR, ".js-product.t-store__card.t-store__stretch-col.t-store__stretch-col_25.t-align_left.t-item")
+        WebDriverWait(items, 10)
         new_items = items[processed_count:]
         if not new_items:
             break
         for item in new_items:
             item_dict = {
-            "title": item.find_item(By.CSS_SELECTOR,
+            "title": item.find_element(By.CSS_SELECTOR,
                 ".js-store-prod-name.js-product-name.t-store__card__title.t-typography__title.t-name.t-name_xs",
                 ).text.strip(),
-            "url": item.find_item(By.TAG_NAME,
+            "url": item.find_element(By.TAG_NAME,
                 "a").get_attribute("href"),
-            "price": item.find_item(By.CSS_SELECTOR,
+            "price": item.find_element(By.CSS_SELECTOR,
                 ".js-product-price.js-store-prod-price-val.t-store__card__price-value",
                 ).text.strip(),
         }
@@ -99,22 +115,23 @@ def selenium_parse_page(url):
 def main():
     # soup = get_soup(url_main)
     # collections = parse_page(soup)
-    # data = selenium_parse_page("https://zara-russia.ru/zhenshchiny_novinki_zara")
-    # save_csv(data, "novinki_zara.csv")
-    start = time.time()
-    data_2 = selenium_parse_page("https://zara-russia.ru/zhenshchiny_yubki_zara")
-    end = time.time()
-    logger.info(f"Время выполнения: {end - start} секунд")
-    save_csv(data_2, "yubki_zara.csv")
-    # save_json(collections)
-
+    # zipka = load_data()
+    for url, name in zipka:
+        logger.info(f"Парсинг страницы: {url}")
+        start = time.time()
+        data = selenium_parse_page(url)
+        csv_filename = f"{name}.csv"
+        save_csv(data, csv_filename)
+        end = time.time()
+        logger.info(f"Время выполнения: {end - start} секунд")
+    
+def load_data():
+    with open("output/collections.json", "r") as file:
+        data = json.load(file)
+        urls = [item["url"] for item in data]
+        names = [url.split("/")[-1] for url in urls]
+        zipka = zip(urls, names)
+        return zipka
 
 if __name__ == "__main__":
     main()
-
-
-
-qwe
-qwe
-qwe
-qwe
