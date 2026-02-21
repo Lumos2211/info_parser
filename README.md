@@ -34,7 +34,6 @@ info_parser/
 
 ## 🛠 Установка
 
-```bash
 # Клонируем репозиторий
 git clone https://github.com/Lumos2211/info_parser.git
 cd info_parser
